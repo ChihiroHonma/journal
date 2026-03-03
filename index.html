@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Daily Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F5F5;--surface:#FFF;--border:#E8E8E8;
+  --text:#1A1A1A;--text-sub:#888;--text-ph:#C8C8C8;
+  --maru:#2E7D32;--sankaku:#E65100;--batsu:#B71C1C;
+  --maru-bg:#E8F5E9;--sankaku-bg:#FFF3E0;--batsu-bg:#FFEBEE;
+  --r:12px;--r-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;font-weight:300;font-size:14px}
+.wrapper{max-width:480px;margin:0 auto;padding-bottom:100px}
+
+.header{padding:44px 16px 14px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between}
+.header-label{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-sub);margin-bottom:2px}
+.header-date{font-family:'DM Serif Display',serif;font-size:19px}
+.icon-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-sub);font-size:15px;flex-shrink:0}
+.icon-btn:active{background:var(--bg)}
+
+.nav{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:71px;z-index:29;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-item{flex-shrink:0;padding:11px 16px;font-size:11px;letter-spacing:.05em;color:var(--text-sub);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s}
+.nav-item.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+
+.page{display:none}
+.page.active{display:block;padding-top:6px}
+
+.card{margin:10px 12px 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-head{padding:10px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-sub);font-weight:400}
+.card-body{padding:12px 14px}
+
+input[type="text"],input[type="number"],textarea{width:100%;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;font-weight:300;color:var(--text);outline:none;font-size:14px;line-height:1.75}
+input[type="text"]::placeholder,input[type="number"]::placeholder,textarea::placeholder{color:var(--text-ph)}
+.big-input{font-size:16px;font-weight:400}
+textarea{resize:none}
+.char-hint{font-size:10px;color:var(--text-ph);text-align:right;margin-top:4px}
+
+/* Category accordion */
+.cat-accordion{margin:10px 12px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.cat-acc-head{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.cat-acc-left{display:flex;align-items:center;gap:9px}
+.cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.cat-acc-name{font-size:13px;font-weight:500}
+.cat-acc-arrow{font-size:13px;color:var(--text-sub);transition:transform .2s;display:inline-block}
+.cat-acc-arrow.open{transform:rotate(90deg)}
+.cat-acc-body{display:none;border-top:1px solid var(--border)}
+.cat-acc-body.open{display:block}
+.cat-section{border-bottom:1px solid var(--border)}
+.cat-section:last-child{border-bottom:none}
+.cat-section-head{padding:7px 14px;background:#FAFAFA;border-bottom:1px solid var(--border)}
+.cat-section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-sub);font-weight:400}
+.cat-field-row{padding:8px 14px;border-bottom:1px solid var(--border)}
+.cat-field-row:last-child{border-bottom:none}
+.cat-field-label{font-size:10px;letter-spacing:.1em;color:var(--text-ph);margin-bottom:4px;text-transform:uppercase}
+.cat-field-ta{width:100%;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:300;color:var(--text);outline:none;line-height:1.8;resize:none;min-height:54px}
+.cat-field-ta::placeholder{color:var(--text-ph)}
+
+/* Habit daily */
+.habit-row{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.habit-row:last-child{border-bottom:none}
+.habit-name-col{flex:1;font-size:13px;font-weight:400;min-width:0}
+.rating-group{display:flex;gap:5px;flex-shrink:0}
+.rating-btn{width:44px;height:36px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.rating-btn:active{transform:scale(.90)}
+.rating-btn.selected[data-r="◯"]{background:var(--maru-bg);border-color:var(--maru)}
+.rating-btn.selected[data-r="△"]{background:var(--sankaku-bg);border-color:var(--sankaku)}
+.rating-btn.selected[data-r="×"]{background:var(--batsu-bg);border-color:var(--batsu)}
+
+/* Achieve page */
+.month-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 6px}
+.month-nav{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;color:var(--text-sub)}
+.month-nav:active{background:var(--bg)}
+.month-label{font-family:'DM Serif Display',serif;font-size:17px}
+.hero-card{margin:0 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.hero-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px}
+.hero-pct{font-family:'DM Serif Display',serif;font-size:48px;line-height:1;color:var(--maru)}
+.hero-pct.zero{color:var(--text-ph)}
+.hero-counts{display:flex;gap:12px;font-size:12px;color:var(--text-sub);margin-top:4px}
+.hero-counts .v{font-family:'DM Serif Display',serif;font-size:15px}
+.hero-counts .v.m{color:var(--maru)}
+.hero-counts .v.s{color:var(--sankaku)}
+.hero-counts .v.b{color:var(--batsu)}
+.bar-wrap{background:var(--bg);border-radius:99px;height:6px;overflow:hidden;margin-bottom:4px}
+.bar-fill{height:100%;border-radius:99px;background:var(--maru);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.bar-note{font-size:10px;color:var(--text-ph);text-align:right}
+
+/* Per-habit stat */
+.habit-stat-item{padding:13px 14px;border-bottom:1px solid var(--border)}
+.habit-stat-item:last-child{border-bottom:none}
+.hsi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:8px}
+.hsi-name{font-size:13px;font-weight:400;flex:1}
+.hsi-pct-block{text-align:right;flex-shrink:0}
+.hsi-pct{font-family:'DM Serif Display',serif;font-size:22px;line-height:1}
+.hsi-pct.high{color:var(--maru)}
+.hsi-pct.mid{color:var(--sankaku)}
+.hsi-pct.low{color:var(--batsu)}
+.hsi-pct.none{color:var(--text-ph);font-size:13px;font-family:'Noto Sans JP',sans-serif}
+.hsi-target-label{font-size:10px;color:var(--text-sub);margin-top:2px}
+.dual-bar{position:relative;background:var(--bg);border-radius:99px;height:6px;margin-bottom:6px}
+.dual-bar-bg{position:absolute;inset:0;border-radius:99px;background:var(--bg)}
+.dual-bar-fill{position:absolute;top:0;left:0;height:100%;border-radius:99px 0 0 99px;transition:width .5s ease}
+.dual-bar-fill.rounded{border-radius:99px}
+.target-line{position:absolute;top:-3px;width:2px;height:12px;background:var(--text);border-radius:1px;z-index:2}
+.hsi-counts{display:flex;gap:10px;font-size:11px;color:var(--text-sub)}
+.hsi-counts span{display:flex;align-items:center;gap:2px}
+
+/* Settings */
+.habit-setting-item{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.habit-setting-item:last-child{border-bottom:none}
+.habit-setting-input{flex:1;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:300;color:var(--text);outline:none;min-width:0}
+.habit-setting-input::placeholder{color:var(--text-ph)}
+.target-input-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 7px}
+.target-input{width:32px;text-align:right;font-size:12px;padding:0;background:transparent;border:none;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-weight:400;outline:none}
+.target-input::-webkit-inner-spin-button,.target-input::-webkit-outer-spin-button{-webkit-appearance:none}
+.target-pct-sign{font-size:11px;color:var(--text-sub)}
+.remove-btn{color:var(--text-ph);cursor:pointer;font-size:16px;padding:2px 4px;flex-shrink:0}
+.add-btn{width:100%;padding:12px;border:1.5px dashed var(--border);border-radius:var(--r-sm);background:transparent;color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px}
+.add-btn:active{border-color:var(--text);color:var(--text)}
+
+.info{margin:8px 12px 0;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:11px;color:var(--text-sub);line-height:1.8}
+
+.submit-bar{position:fixed;bottom:0;left:0;right:0;padding:10px 12px 24px;background:var(--surface);border-top:1px solid var(--border);z-index:40}
+.submit-btn{width:100%;max-width:480px;margin:0 auto;display:flex;background:var(--text);color:#FAFAFA;border:none;border-radius:var(--r);padding:15px;font-family:'Noto Sans JP',sans-serif;font-size:14px;letter-spacing:.06em;font-weight:400;cursor:pointer;align-items:center;justify-content:center;gap:8px}
+.submit-btn:active{opacity:.75}
+.submit-btn.loading{opacity:.5;pointer-events:none}
+.submit-btn.success{background:var(--maru)}
+.spinner{width:15px;height:15px;border:1.5px solid rgba(250,250,250,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+.submit-btn.loading .spinner{display:block}
+.submit-btn.loading .btn-text{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;top:-60px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:11px 18px;border-radius:var(--r-sm);font-size:13px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.12);transition:top .3s cubic-bezier(.34,1.4,.64,1);z-index:999}
+.toast.show{top:18px}
+.toast.error{background:var(--batsu)}
+.toast.ok{background:var(--maru)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;display:none;align-items:flex-end}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px 38px;width:100%;max-width:480px;margin:0 auto;animation:up .25s cubic-bezier(.34,1.2,.64,1)}
+@keyframes up{from{transform:translateY(100%)}}
+.drag{width:36px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal h3{font-size:15px;font-weight:500;margin-bottom:5px}
+.modal p{font-size:12px;color:var(--text-sub);line-height:1.7;margin-bottom:14px}
+.modal-input{width:100%;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px 13px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:300;color:var(--text);background:var(--bg);outline:none;margin-bottom:10px}
+.modal-input:focus{border-color:var(--text)}
+.modal-btn{width:100%;border:none;border-radius:var(--r-sm);padding:13px;font-family:'Noto Sans JP',sans-serif;font-size:14px;cursor:pointer;margin-bottom:8px}
+.modal-btn.primary{background:var(--text);color:#fff}
+.modal-btn.primary:active{opacity:.7}
+.modal-btn.secondary{background:transparent;border:1.5px solid var(--border);color:var(--text-sub)}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div>
+      <div class="header-label">Daily Journal</div>
+      <div class="header-date" id="headerDate">—</div>
+    </div>
+    <div class="icon-btn" onclick="openGasModal()">⚙</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="nav('daily',this)">今日の記録</div>
+    <div class="nav-item" onclick="nav('habits',this)">習慣達成率</div>
+    <div class="nav-item" onclick="nav('monthly',this)">月間目標</div>
+    <div class="nav-item" onclick="nav('settings',this)">設定</div>
+  </div>
+
+  <!-- PAGE: 今日の記録 -->
+  <div id="page-daily" class="page active">
+    <div class="card">
+      <div class="card-head"><span class="card-title">タイトル</span></div>
+      <div class="card-body"><input type="text" class="big-input" id="titleInput" placeholder="今日を一言で…" maxlength="60"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">今日のできごと・気づき</span></div>
+      <div class="card-body">
+        <textarea id="bodyInput" style="min-height:120px" placeholder="今日あったこと、感じたこと…" maxlength="2000" oninput="document.getElementById('cc').textContent=this.value.length"></textarea>
+        <div class="char-hint"><span id="cc">0</span> / 2000</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">行動目標 ◯△×</span>
+        <span style="font-size:10px;color:var(--text-sub)">今日の評価</span>
+      </div>
+      <div id="habitDailyList"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: 習慣達成率 -->
+  <div id="page-habits" class="page">
+    <div class="month-bar">
+      <div class="month-nav" onclick="changeMonth(-1)">‹</div>
+      <div class="month-label" id="achieveMonthLabel">—</div>
+      <div class="month-nav" onclick="changeMonth(1)">›</div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-top">
+        <div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-sub);margin-bottom:4px">◯ 平均達成率</div>
+          <div class="hero-pct" id="heroPct">—</div>
+          <div class="hero-counts" id="heroCounts"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--text-sub)" id="heroDenomLabel"></div>
+        </div>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" id="achieveBar" style="width:0%"></div></div>
+      <div class="bar-note" id="barNote"></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <div class="card-head">
+        <span class="card-title">習慣ごとの達成率</span>
+        <span style="font-size:10px;color:var(--text-sub)">縦線 = 目標ライン</span>
+      </div>
+      <div id="habitStatList"></div>
+    </div>
+    <div class="info">達成率 = ◯数 ÷ 月の日数（例：13◯/31日 = 41.9%）　縦線が目標達成率を示します</div>
+  </div>
+
+  <!-- PAGE: 月間目標 -->
+  <div id="page-monthly" class="page">
+    <div id="catAccordionContainer"></div>
+    <div style="padding:0 12px;margin-top:10px;margin-bottom:4px">
+      <button class="add-btn" onclick="saveMonthlyLocally()" style="border-style:solid;background:var(--surface)">💾 月間データを端末に保存</button>
+    </div>
+  </div>
+
+  <!-- PAGE: 設定 -->
+  <div id="page-settings" class="page">
+    <div class="card" style="margin-top:10px">
+      <div class="card-head">
+        <span class="card-title">行動目標リスト</span>
+        <span style="font-size:10px;color:var(--text-sub)">右の%が月間目標</span>
+      </div>
+      <div id="habitSettingList"></div>
+      <div style="padding:0 12px 12px">
+        <button class="add-btn" onclick="addHabit()">＋ 行動目標を追加</button>
+      </div>
+    </div>
+    <div class="info">「目標%」欄に月間達成目標を入力すると、習慣達成率ページのグラフに目標ラインが表示されます。</div>
+  </div>
+</div>
+
+<div class="submit-bar">
+  <button class="submit-btn" id="submitBtn" onclick="submitEntry()">
+    <div class="spinner"></div>
+    <span class="btn-text">スプレッドシートに保存</span>
+  </button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="overlay" id="gasOverlay" onclick="if(event.target===this)closeGasModal()">
+  <div class="modal">
+    <div class="drag"></div>
+    <h3>Google Sheets 接続設定</h3>
+    <p>WebアプリのURLと、GASに設定した認証トークン（パスワード）を入力してください。</p>
+    <input type="url" class="modal-input" id="gasUrlInput" placeholder="https://script.google.com/macros/s/...">
+    <input type="text" class="modal-input" id="gasTokenInput" placeholder="トークン（例: mySecret123）" autocomplete="off" style="font-family:monospace">
+    <button class="modal-btn primary" onclick="saveGasUrl()">保存する</button>
+    <button class="modal-btn secondary" onclick="closeGasModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {id:'economy',  label:'経済', color:'#1565C0', emoji:'💰'},
+  {id:'work',     label:'仕事', color:'#6A1B9A', emoji:'💼'},
+  {id:'health',   label:'健康', color:'#2E7D32', emoji:'💪'},
+  {id:'wish',     label:'願望', color:'#E65100', emoji:'✨'},
+  {id:'knowledge',label:'知識', color:'#00695C', emoji:'📚'},
+];
+
+const CAT_FIELDS = [
+  {section:'Q目標・Q結果', fields:[
+    {id:'qGoal',   label:'Q目標',   ph:'この四半期で達成したいこと…'},
+    {id:'qResult', label:'Q結果',   ph:'Q終了後の結果・振り返り…'},
+  ]},
+  {section:'月間目標・振り返り', fields:[
+    {id:'mGoal',   label:'月間目標',    ph:'今月達成したいこと…'},
+    {id:'mReview', label:'月間振り返り', ph:'月末の振り返り…'},
+  ]},
+  {section:'行動計画', fields:[
+    {id:'plan', label:'行動計画', ph:'具体的な行動計画…'},
+  ]},
+  {section:'週次振り返り', fields:[
+    {id:'w1', label:'1W', ph:'1週目の振り返り…'},
+    {id:'w2', label:'2W', ph:'2週目の振り返り…'},
+    {id:'w3', label:'3W', ph:'3週目の振り返り…'},
+    {id:'w4', label:'4W', ph:'4週目の振り返り…'},
+  ]},
+];
+
+const DEFAULT_HABITS = ['朝のルーティン','運動','食事記録','戦略的読書','ラーニングAI','0時30分入眠','夜間摂食行動','運動読書願望TB','ジャーナル記載率'];
+
+let gasUrl = localStorage.getItem('gasUrl') || '';
+let gasToken = localStorage.getItem('gasToken') || '';
+let habits = JSON.parse(localStorage.getItem('habits') || 'null') || DEFAULT_HABITS.map(n=>({name:n,target:80}));
+let achieveMonth = new Date();
+
+const monthKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const dateKey  = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const loadMonthly  = k => JSON.parse(localStorage.getItem('monthly_'+k)||'{}');
+const saveMonthlyData = (k,v) => localStorage.setItem('monthly_'+k, JSON.stringify(v));
+const loadDailyLog = k => JSON.parse(localStorage.getItem('log_'+k)||'{}');
+const saveDailyLog = (k,v) => localStorage.setItem('log_'+k, JSON.stringify(v));
+
+function init() {
+  const now = new Date(), wd=['日','月','火','水','木','金','土'];
+  document.getElementById('headerDate').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${wd[now.getDay()]}）`;
+  if (gasUrl) document.getElementById('gasUrlInput').value = gasUrl;
+  if (gasToken) document.getElementById('gasTokenInput').value = gasToken;
+  renderCatAccordions();
+  renderHabitDaily();
+  renderHabitSettings();
+  loadMonthlyFields();
+  renderAchievePage();
+}
+
+function nav(name, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name==='habits')  renderAchievePage();
+  if (name==='settings') renderHabitSettings();
+  if (name==='monthly')  loadMonthlyFields();
+}
+
+function renderCatAccordions() {
+  const container = document.getElementById('catAccordionContainer');
+  container.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const acc = document.createElement('div');
+    acc.className = 'cat-accordion';
+    let sectionsHtml = CAT_FIELDS.map(sec => {
+      const fieldsHtml = sec.fields.map(f => `
+        <div class="cat-field-row">
+          <div class="cat-field-label">${f.label}</div>
+          <textarea class="cat-field-ta" id="cat_${cat.id}_${f.id}" placeholder="${f.ph}" rows="2"></textarea>
+        </div>`).join('');
+      return `<div class="cat-section">
+        <div class="cat-section-head"><span class="cat-section-title">${sec.section}</span></div>
+        ${fieldsHtml}
+      </div>`;
+    }).join('');
+    acc.innerHTML = `
+      <div class="cat-acc-head" onclick="toggleAcc(this)">
+        <div class="cat-acc-left">
+          <div class="cat-dot" style="background:${cat.color}"></div>
+          <span class="cat-acc-name" style="color:${cat.color}">${cat.emoji} ${cat.label}</span>
+        </div>
+        <span class="cat-acc-arrow">›</span>
+      </div>
+      <div class="cat-acc-body">${sectionsHtml}</div>`;
+    container.appendChild(acc);
+  });
+}
+
+function toggleAcc(head) {
+  head.querySelector('.cat-acc-arrow').classList.toggle('open');
+  head.nextElementSibling.classList.toggle('open');
+}
+
+function loadMonthlyFields() {
+  const key = monthKey(new Date()), data = loadMonthly(key);
+  CATEGORIES.forEach(cat => CAT_FIELDS.forEach(sec => sec.fields.forEach(f => {
+    const el = document.getElementById(`cat_${cat.id}_${f.id}`);
+    if (el && data[`cat_${cat.id}_${f.id}`]) el.value = data[`cat_${cat.id}_${f.id}`];
+  })));
+}
+
+function saveMonthlyLocally() {
+  const key = monthKey(new Date()), data = {};
+  CATEGORIES.forEach(cat => CAT_FIELDS.forEach(sec => sec.fields.forEach(f => {
+    const el = document.getElementById(`cat_${cat.id}_${f.id}`);
+    if (el) data[`cat_${cat.id}_${f.id}`] = el.value;
+  })));
+  saveMonthlyData(key, data);
+  showToast('月間データを保存しました', false, true);
+}
+
+function renderHabitDaily() {
+  const list = document.getElementById('habitDailyList');
+  list.innerHTML = '';
+  const log = loadDailyLog(dateKey(new Date()));
+  if (!habits.length) { list.innerHTML='<div style="padding:16px 14px;color:var(--text-ph);font-size:13px;text-align:center">「設定」タブで行動目標を登録してください</div>'; return; }
+  habits.forEach((h,i) => {
+    const saved = log[h.name]||null, div = document.createElement('div');
+    div.className = 'habit-row';
+    div.innerHTML = `<div class="habit-name-col">${esc(h.name)}</div>
+      <div class="rating-group">
+        ${['◯','△','×'].map(r=>`<button class="rating-btn${saved===r?' selected':''}" data-r="${r}" data-h="${i}" onclick="selectHabit(this)">${r}</button>`).join('')}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function selectHabit(btn) {
+  const hi = btn.dataset.h;
+  document.querySelectorAll(`.rating-btn[data-h="${hi}"]`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const today = dateKey(new Date()), log = loadDailyLog(today);
+  log[habits[hi].name] = btn.dataset.r;
+  saveDailyLog(today, log);
+}
+
+function renderHabitSettings() {
+  const list = document.getElementById('habitSettingList');
+  list.innerHTML = '';
+  if (!habits.length) { list.innerHTML='<div style="padding:14px;color:var(--text-ph);font-size:13px;text-align:center">まだ項目がありません</div>'; return; }
+  habits.forEach((h,i) => {
+    const div = document.createElement('div');
+    div.className = 'habit-setting-item';
+    div.innerHTML = `
+      <span style="font-size:11px;color:var(--text-sub);width:16px;flex-shrink:0;text-align:center">${i+1}</span>
+      <input class="habit-setting-input" type="text" value="${esc(h.name)}" placeholder="行動目標…"
+        oninput="habits[${i}].name=this.value;saveHabits();renderHabitDaily()">
+      <div class="target-input-wrap">
+        <input class="target-input" type="number" min="0" max="100" value="${h.target!=null?h.target:80}"
+          oninput="habits[${i}].target=parseInt(this.value)||0;saveHabits()" placeholder="80">
+        <span class="target-pct-sign">%</span>
+      </div>
+      <span class="remove-btn" onclick="removeHabit(${i})">✕</span>`;
+    list.appendChild(div);
+  });
+}
+
+function addHabit() {
+  if (habits.length>=15) { showToast('最大15個まで',true); return; }
+  habits.push({name:'',target:80}); saveHabits(); renderHabitSettings(); renderHabitDaily();
+  setTimeout(()=>{ const ins=document.querySelectorAll('.habit-setting-input'); if(ins.length) ins[ins.length-1].focus(); },50);
+}
+function removeHabit(i) { habits.splice(i,1); saveHabits(); renderHabitSettings(); renderHabitDaily(); }
+function saveHabits() { localStorage.setItem('habits',JSON.stringify(habits)); }
+
+function renderAchievePage() {
+  const yr=achieveMonth.getFullYear(), mo=achieveMonth.getMonth();
+  const dim = new Date(yr,mo+1,0).getDate();
+  document.getElementById('achieveMonthLabel').textContent = `${yr}年${mo+1}月`;
+
+  const counts = {};
+  habits.forEach(h => { counts[h.name]={maru:0,sankaku:0,batsu:0}; });
+  for (let d=1;d<=dim;d++) {
+    const dk=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const log=loadDailyLog(dk);
+    habits.forEach(h => {
+      if      (log[h.name]==='◯') counts[h.name].maru++;
+      else if (log[h.name]==='△') counts[h.name].sankaku++;
+      else if (log[h.name]==='×') counts[h.name].batsu++;
+    });
+  }
+
+  let totalRate=0, totalMaru=0, totalSankaku=0, totalBatsu=0;
+  habits.forEach(h => {
+    totalRate += counts[h.name].maru/dim;
+    totalMaru += counts[h.name].maru;
+    totalSankaku += counts[h.name].sankaku;
+    totalBatsu += counts[h.name].batsu;
+  });
+  const avgPct = habits.length>0 ? Math.round(totalRate/habits.length*1000)/10 : 0;
+
+  const heroPct = document.getElementById('heroPct');
+  heroPct.textContent = totalMaru>0 ? avgPct+'%' : '—';
+  heroPct.className = 'hero-pct'+(totalMaru===0?' zero':'');
+  document.getElementById('heroDenomLabel').textContent = `/ ${dim}日`;
+  document.getElementById('achieveBar').style.width = (totalMaru>0?Math.min(avgPct,100):0)+'%';
+  document.getElementById('barNote').textContent = totalMaru>0 ? `全習慣◯合計 ${totalMaru}回 ÷ 月${dim}日` : '記録がありません';
+  document.getElementById('heroCounts').innerHTML = `
+    <span><span class="v m">◯ ${totalMaru}</span></span>
+    <span><span class="v s">△ ${totalSankaku}</span></span>
+    <span><span class="v b">× ${totalBatsu}</span></span>`;
+
+  const statList = document.getElementById('habitStatList');
+  statList.innerHTML = '';
+  if (!habits.length) { statList.innerHTML='<div style="padding:16px 14px;color:var(--text-ph);font-size:13px;text-align:center">行動目標が登録されていません</div>'; return; }
+
+  habits.forEach(h => {
+    const c = counts[h.name];
+    const actualPct = Math.round(c.maru/dim*1000)/10;
+    const targetPct = Math.min(h.target!=null?h.target:80, 100);
+    const hasData = (c.maru+c.sankaku+c.batsu)>0;
+    let pctClass='none', barColor='#E0E0E0';
+    if (hasData) {
+      if      (actualPct>=targetPct)          { pctClass='high'; barColor='var(--maru)'; }
+      else if (actualPct>=targetPct*0.6)      { pctClass='mid';  barColor='var(--sankaku)'; }
+      else                                    { pctClass='low';  barColor='var(--batsu)'; }
+    }
+    const isRounded = actualPct>=100 || actualPct>=targetPct;
+    const achieved  = hasData && actualPct>=targetPct;
+    const vsText    = hasData ? (achieved ? '✓ 目標達成' : `目標 ${targetPct}%`) : '';
+    const vsColor   = achieved ? 'var(--maru)' : 'var(--text-sub)';
+    const item = document.createElement('div');
+    item.className = 'habit-stat-item';
+    item.innerHTML = `
+      <div class="hsi-top">
+        <div class="hsi-name">${esc(h.name)}</div>
+        <div class="hsi-pct-block">
+          <div class="hsi-pct ${pctClass}">${hasData?actualPct+'%':'未記録'}</div>
+          <div class="hsi-target-label" style="color:${vsColor}">${vsText}</div>
+        </div>
+      </div>
+      <div class="dual-bar">
+        <div class="dual-bar-fill${isRounded?' rounded':''}" style="width:${hasData?Math.min(actualPct,100):0}%;background:${barColor}"></div>
+        ${targetPct>0?`<div class="target-line" style="left:calc(${targetPct}% - 1px)"></div>`:''}
+      </div>
+      <div class="hsi-counts">
+        <span>◯ <strong style="color:var(--maru)">${c.maru}</strong></span>
+        <span>△ <strong style="color:var(--sankaku)">${c.sankaku}</strong></span>
+        <span>× <strong style="color:var(--batsu)">${c.batsu}</strong></span>
+        <span style="margin-left:auto;color:var(--text-ph)">${c.maru}/${dim}日</span>
+      </div>`;
+    statList.appendChild(item);
+  });
+}
+
+function changeMonth(dir) { achieveMonth=new Date(achieveMonth.getFullYear(),achieveMonth.getMonth()+dir,1); renderAchievePage(); }
+
+async function submitEntry() {
+  if (!gasUrl) { showToast('⚙ まず設定でURLを入力してください',true); openGasModal(); return; }
+  const title=document.getElementById('titleInput').value.trim();
+  const body=document.getElementById('bodyInput').value.trim();
+  if (!body&&!title) { showToast('タイトルか本文を入力してください',true); return; }
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+  const timeStr=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const log=loadDailyLog(dateKey(now));
+  const habitData=habits.map(h=>({name:h.name,target:h.target||80,rating:log[h.name]||'—'}));
+  const mk=monthKey(now), md=loadMonthly(mk);
+  const catData={};
+  CATEGORIES.forEach(cat => {
+    catData[cat.id]={label:cat.label};
+    CAT_FIELDS.forEach(sec => sec.fields.forEach(f => { catData[cat.id][f.id]=md[`cat_${cat.id}_${f.id}`]||''; }));
+  });
+  const payload={token:gasToken,date:dateStr,time:timeStr,title:title||'（無題）',body,habits:habitData,monthly:{categories:catData}};
+  const btn=document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  try {
+    // GASはno-corsだとレスポンス読めないのでフォームエンコードで送る
+    const form = new URLSearchParams();
+    form.append('payload', JSON.stringify(payload));
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: form
+    });
+    btn.classList.remove('loading'); btn.classList.add('success');
+    btn.querySelector('.btn-text').textContent='✓ 保存しました';
+    showToast('スプレッドシートに保存しました',false,true);
+    setTimeout(()=>{ document.getElementById('titleInput').value=''; document.getElementById('bodyInput').value=''; document.getElementById('cc').textContent='0'; btn.classList.remove('success'); btn.querySelector('.btn-text').textContent='スプレッドシートに保存'; },2200);
+  } catch(e) { btn.classList.remove('loading'); showToast('送信に失敗しました。URLを確認してください',true); }
+}
+
+function openGasModal()  { document.getElementById('gasOverlay').classList.add('open'); }
+function closeGasModal() { document.getElementById('gasOverlay').classList.remove('open'); }
+function saveGasUrl() {
+  const url=document.getElementById('gasUrlInput').value.trim();
+  const token=document.getElementById('gasTokenInput').value.trim();
+  if (!url.startsWith('https://script.google.com')) { showToast('正しいGAS URLを入力してください',true); return; }
+  if (!token) { showToast('トークンを入力してください',true); return; }
+  gasUrl=url; localStorage.setItem('gasUrl',url);
+  gasToken=token; localStorage.setItem('gasToken',token);
+  closeGasModal(); showToast('設定を保存しました',false,true);
+}
+function showToast(msg,isError=false,isOk=false) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(isError?' error':(isOk?' ok':''));
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+init();
+</script>
+</body>
+</html>
