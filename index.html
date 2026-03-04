@@ -343,7 +343,7 @@ function renderCatAccordions() {
       const fieldsHtml = sec.fields.map(f => `
         <div class="cat-field-row">
           <div class="cat-field-label">${f.label}</div>
-          <textarea class="cat-field-ta" id="cat_${cat.id}_${f.id}" placeholder="${f.ph}" rows="2"></textarea>
+          <textarea class="cat-field-ta" id="cat_${cat.id}_${f.id}" placeholder="${f.ph}" rows="2" oninput="autoSaveMonthly()"></textarea>
         </div>`).join('');
       return `<div class="cat-section">
         <div class="cat-section-head"><span class="cat-section-title">${sec.section}</span></div>
@@ -574,6 +574,15 @@ function showToast(msg,isError=false,isOk=false) {
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
 }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function autoSaveMonthly() {
+  const key = monthKey(new Date()), data = {};
+  CATEGORIES.forEach(cat => CAT_FIELDS.forEach(sec => sec.fields.forEach(f => {
+    const el = document.getElementById(`cat_${cat.id}_${f.id}`);
+    if (el) data[`cat_${cat.id}_${f.id}`] = el.value;
+  })));
+  saveMonthlyData(key, data);
+}
 
 init();
 </script>
