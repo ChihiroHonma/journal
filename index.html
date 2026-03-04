@@ -124,6 +124,15 @@ textarea{resize:none}
 .add-btn{width:100%;padding:12px;border:1.5px dashed var(--border);border-radius:var(--r-sm);background:transparent;color:var(--text-sub);font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px}
 .add-btn:active{border-color:var(--text);color:var(--text)}
 
+.cat-goal-setting-item{border-bottom:1px solid var(--border)}
+.cat-goal-setting-item:last-child{border-bottom:none}
+.cat-goal-setting-head{padding:11px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.cat-goal-setting-body{display:none;padding:0 14px 12px}
+.cat-goal-setting-body.open{display:block}
+.cat-goal-field{margin-bottom:10px}
+.cat-goal-label{font-size:10px;letter-spacing:.1em;color:var(--text-sub);margin-bottom:4px;text-transform:uppercase}
+.cat-goal-ta{width:100%;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:300;color:var(--text);background:var(--bg);outline:none;line-height:1.8;resize:none;min-height:52px}
+.cat-goal-ta:focus{border-color:var(--text)}
 .info{margin:8px 12px 0;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:11px;color:var(--text-sub);line-height:1.8}
 
 .submit-bar{position:fixed;bottom:0;left:0;right:0;padding:10px 12px 24px;background:var(--surface);border-top:1px solid var(--border);z-index:40}
@@ -237,6 +246,14 @@ textarea{resize:none}
   <div id="page-settings" class="page">
     <div class="card" style="margin-top:10px">
       <div class="card-head">
+        <span class="card-title">カテゴリ目標設定</span>
+        <span style="font-size:10px;color:var(--text-sub)">永続保存・月をまたいで引き継ぎ</span>
+      </div>
+      <div id="catGoalSettingList"></div>
+    </div>
+    <div class="info" style="margin-top:6px">Q目標・月間目標・行動計画は設定で管理します。変更しない限り毎月引き継がれます。</div>
+    <div class="card" style="margin-top:10px">
+      <div class="card-head">
         <span class="card-title">行動目標リスト</span>
         <span style="font-size:10px;color:var(--text-sub)">右の%が月間目標</span>
       </div>
@@ -319,7 +336,9 @@ function init() {
   renderCatAccordions();
   renderHabitDaily();
   renderHabitSettings();
+  renderCatGoalSettings();
   loadMonthlyFields();
+  syncCatGoalsToMonthly();
   renderAchievePage();
 }
 
@@ -329,7 +348,7 @@ function nav(name, el) {
   document.getElementById('page-'+name).classList.add('active');
   el.classList.add('active');
   if (name==='habits')  renderAchievePage();
-  if (name==='settings') renderHabitSettings();
+  if (name==='settings') { renderHabitSettings(); renderCatGoalSettings(); }
   if (name==='monthly')  loadMonthlyFields();
 }
 
@@ -340,11 +359,16 @@ function renderCatAccordions() {
     const acc = document.createElement('div');
     acc.className = 'cat-accordion';
     let sectionsHtml = CAT_FIELDS.map(sec => {
-      const fieldsHtml = sec.fields.map(f => `
+      const READONLY_FIELDS = ['qGoal','mGoal','plan'];
+      const fieldsHtml = sec.fields.map(f => {
+        const isReadonly = READONLY_FIELDS.includes(f.id);
+        return `
         <div class="cat-field-row">
-          <div class="cat-field-label">${f.label}</div>
-          <textarea class="cat-field-ta" id="cat_${cat.id}_${f.id}" placeholder="${f.ph}" rows="2" oninput="autoSaveMonthly()"></textarea>
-        </div>`).join('');
+          <div class="cat-field-label">${f.label}${isReadonly ? ' <span style=\"font-size:9px;background:#E8EAF6;color:#5C6BC0;border-radius:3px;padding:1px 5px;margin-left:4px\">設定で変更</span>' : ''}</div>
+          <textarea class="cat-field-ta" id="cat_${cat.id}_${f.id}" placeholder="${f.ph}" rows="2"
+            ${isReadonly ? 'readonly style=\"background:#FAFAFA;color:var(--text-sub);cursor:default\"' : 'oninput=\"autoSaveMonthly()\"'}></textarea>
+        </div>`;
+      }).join('');
       return `<div class="cat-section">
         <div class="cat-section-head"><span class="cat-section-title">${sec.section}</span></div>
         ${fieldsHtml}
@@ -370,9 +394,17 @@ function toggleAcc(head) {
 
 function loadMonthlyFields() {
   const key = monthKey(new Date()), data = loadMonthly(key);
+  const goals = loadCatGoals();
   CATEGORIES.forEach(cat => CAT_FIELDS.forEach(sec => sec.fields.forEach(f => {
     const el = document.getElementById(`cat_${cat.id}_${f.id}`);
-    if (el && data[`cat_${cat.id}_${f.id}`]) el.value = data[`cat_${cat.id}_${f.id}`];
+    if (!el) return;
+    if (data[`cat_${cat.id}_${f.id}`]) {
+      // 月ごとの保存データを優先
+      el.value = data[`cat_${cat.id}_${f.id}`];
+    } else if (['qGoal','mGoal','plan'].includes(f.id) && goals[cat.id] && goals[cat.id][f.id]) {
+      // 設定の永続値を反映
+      el.value = goals[cat.id][f.id];
+    }
   })));
 }
 
@@ -577,6 +609,83 @@ function showToast(msg,isError=false,isOk=false) {
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
 }
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── カテゴリ目標設定（永続・月をまたいで引き継ぎ）──
+// 保存キー: 'catGoals' -> { economy: {qGoal, mGoal, plan}, work: {...}, ... }
+function loadCatGoals() {
+  return JSON.parse(localStorage.getItem('catGoals') || '{}');
+}
+function saveCatGoals(data) {
+  localStorage.setItem('catGoals', JSON.stringify(data));
+}
+
+function renderCatGoalSettings() {
+  const list = document.getElementById('catGoalSettingList');
+  if (!list) return;
+  list.innerHTML = '';
+  const saved = loadCatGoals();
+  CATEGORIES.forEach(cat => {
+    const data = saved[cat.id] || {};
+    const item = document.createElement('div');
+    item.className = 'cat-goal-setting-item';
+    item.innerHTML = `
+      <div class="cat-goal-setting-head" onclick="toggleCatGoalSetting(this)">
+        <div class="cat-dot" style="background:${cat.color}"></div>
+        <span style="font-size:13px;font-weight:500;color:${cat.color};flex:1">${cat.emoji} ${cat.label}</span>
+        <span class="cat-acc-arrow">›</span>
+      </div>
+      <div class="cat-goal-setting-body">
+        <div class="cat-goal-field">
+          <div class="cat-goal-label">Q目標</div>
+          <textarea class="cat-goal-ta" id="cgs_${cat.id}_qGoal" rows="2"
+            placeholder="この四半期で達成したいこと…"
+            oninput="saveCatGoalField('${cat.id}','qGoal',this.value)">${esc(data.qGoal||'')}</textarea>
+        </div>
+        <div class="cat-goal-field">
+          <div class="cat-goal-label">月間目標</div>
+          <textarea class="cat-goal-ta" id="cgs_${cat.id}_mGoal" rows="2"
+            placeholder="今月達成したいこと…"
+            oninput="saveCatGoalField('${cat.id}','mGoal',this.value)">${esc(data.mGoal||'')}</textarea>
+        </div>
+        <div class="cat-goal-field">
+          <div class="cat-goal-label">行動計画</div>
+          <textarea class="cat-goal-ta" id="cgs_${cat.id}_plan" rows="2"
+            placeholder="具体的な行動計画…"
+            oninput="saveCatGoalField('${cat.id}','plan',this.value)">${esc(data.plan||'')}</textarea>
+        </div>
+      </div>`;
+    list.appendChild(item);
+  });
+}
+
+function toggleCatGoalSetting(head) {
+  head.querySelector('.cat-acc-arrow').classList.toggle('open');
+  head.nextElementSibling.classList.toggle('open');
+}
+
+function saveCatGoalField(catId, field, value) {
+  const data = loadCatGoals();
+  if (!data[catId]) data[catId] = {};
+  data[catId][field] = value;
+  saveCatGoals(data);
+  // 月間目標タブにも即時反映
+  syncCatGoalsToMonthly();
+}
+
+// 設定のQ目標・月間目標・行動計画を月間目標タブのフィールドに反映
+function syncCatGoalsToMonthly() {
+  const goals = loadCatGoals();
+  CATEGORIES.forEach(cat => {
+    const g = goals[cat.id] || {};
+    ['qGoal','mGoal','plan'].forEach(field => {
+      const el = document.getElementById(`cat_${cat.id}_${field}`);
+      if (el && g[field] !== undefined) {
+        // 月間目標タブのフィールドが空の場合のみ反映（上書きしない）
+        if (!el.value) el.value = g[field];
+      }
+    });
+  });
+}
 
 function autoSaveMonthly() {
   const key = monthKey(new Date()), data = {};
